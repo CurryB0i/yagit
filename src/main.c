@@ -10,7 +10,11 @@ int main(int argc,char* argv[]) {
 
     char* command = argv[1];
     if(strcmp(command,"init")==0){
-        return init_command(argc -1 ,argv);
+        return init_command(argc-1 ,argv);
+    }
+
+    if(strcmp(command,"add")==0){
+	return add_command(argc-1, argv);
     }
 
     return 0;

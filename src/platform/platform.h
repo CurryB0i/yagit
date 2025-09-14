@@ -8,6 +8,7 @@
 #else
     #include <sys/stat.h>
     #include <sys/types.h>
+    #include <unistd.h>
     #define MKDIR(path,mode) mkdir(path,mode)
     #define GETCWD(path,size) getcwd(path,size)
 #endif

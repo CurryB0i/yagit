@@ -9,13 +9,10 @@ set(ZSTD_ROOT "${PROJECT_SOURCE_DIR}/src/extern/zstd")
 set(SHA256_ROOT "${PROJECT_SOURCE_DIR}/src/extern/sha256")
 
 file(GLOB_RECURSE ZSTD_SOURCES
-    "${ZSTD_ROOT}/lib/*.c"
-    "${ZSTD_ROOT}/lib/common/*.c"
-    "${ZSTD_ROOT}/lib/compress/*.c"
-    "${ZSTD_ROOT}/lib/decompress/*.c"
+    "${ZSTD_ROOT}/*.c"
 )
 
-file(GLOB_RECURSE ZSTD_ASM_SOURCES "${ZSTD_ROOT}/lib/**/*.S")
+file(GLOB_RECURSE ZSTD_ASM_SOURCES "${ZSTD_ROOT}/*.S")
 
 add_executable(yagit ${YAGIT_SOURCES} ${ZSTD_SOURCES} ${ZSTD_ASM_SOURCES})
 
@@ -23,7 +20,6 @@ target_compile_definitions(yagit PRIVATE ZSTD_ASM_SUPPORTED=1)
 
 target_include_directories(yagit PRIVATE
     ${PROJECT_SOURCE_DIR}/src/include
-    ${PROJECT_SOURCE_DIR}/src/platform
     ${SHA256_ROOT}/
     ${ZSTD_ROOT}/lib
     ${ZSTD_ROOT}/lib/common

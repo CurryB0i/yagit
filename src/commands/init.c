@@ -1,37 +1,18 @@
 #include "init.h"
 #include "platform.h"
+#include "globals.h"
 #include <limits.h>
-#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
-#define NO_OF_FOLDERS 5
-#define NO_OF_FILES 5
-
-char* folders[5] = {
-  "toilet",
-  "snitches",
-  "landmines",
-  "useless_trivia",
-  "dirt",
-};
-
-char* files[5] = {
-  "yesterday",
-  "settings_youll_break",
-  "brag_sheet",
-  "limbo",
-  "stuffed_snitches"
-};
 
 int init_command(int argc, char* argv[]) {
   struct stat st = {0};
   if(stat(".yagit",&st) == -1) {
     int status = MKDIR(".yagit",0700);
-    char cwd[PATH_MAX];
 
-    if(GETCWD(cwd,sizeof(cwd)) == NULL) {
-      perror("Can’t fetch cwd, are you lost?");
+    if(GETCWD(YAGIT_SRC_DIR,sizeof(YAGIT_SRC_DIR)) == NULL) {
+      perror("Can’t fetch cwd, are you lost, u stupid bitch?");
       return 1;
     }
 
@@ -51,8 +32,7 @@ int init_command(int argc, char* argv[]) {
 
         status = MKDIR(folderPath,0700);
         if(status != 0) {
-          fprintf(stderr,"%s : yagit out, i cant even create a fcking dir in this mf, how do u expect me to version control\n"
-              ,strerror(errno));
+          perror("yagit out, i cant even create a fcking dir in this mf, how do u expect me to version control : ");
           return 1;
         }    
       }
@@ -63,17 +43,16 @@ int init_command(int argc, char* argv[]) {
 
         FILE* fp = fopen(filePath,"w");
         if(fp == NULL) {
-          fprintf(stderr,"%s : yagit out, i cant even create a fcking file in this mf, how do u expect me to version control\n"
-              ,strerror(errno));
+          perror("yagit out, i cant even create a fcking file in this mf, how do u expect me to version control : ");
           return 1;
         }
         fclose(fp);
       }
 
-      printf("Initialized empty yagit repository in %s\n",cwd);
+      printf("Initialized empty yagit repository in %s\n",YAGIT_SRC_DIR);
       return 0;
     } else {
-      fprintf(stderr,"%s : yagit out, i cant even create a fcking dir in this mf, how do u expect me to version control\n",strerror(errno));
+      perror("yagit out, i cant even create a fcking dir in this mf, how do u expect me to version control : ");
       return 1;
     }
   } else {

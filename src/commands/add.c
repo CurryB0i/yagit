@@ -1,8 +1,14 @@
 #include "add.h"
 #include "SHA256.h"
+#include "globals.h"
 #include "zstd.h"
+#include "platform.h"
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
+
+int compress_content(void* compressed,const char* content,size_t content_len) {
+}
 
 int add_command(int argc, char **argv) {
  /*   const char* input = "Hello, Zstandard compression!";
@@ -58,7 +64,7 @@ int add_command(int argc, char **argv) {
       printf("is '%s' ",argv[3]);
     } else {
       printf("are ");
-      for(int i=3;i<argc-1;i++) {
+      for(int i=3;i<argc;i++) {
         printf("'%s', ",argv[i]);
       }
       printf("and '%s' ",argv[argc]);
@@ -72,6 +78,7 @@ int add_command(int argc, char **argv) {
     printf("This is just a load of crap now.");
     return 1;
   }
+
   fseek(file,0,SEEK_END);
   size_t size = ftell(file);
   rewind(file);
@@ -93,7 +100,39 @@ int add_command(int argc, char **argv) {
   memcpy(blob, header, header_len);
   blob[header_len] = '\0';
   memcpy(blob + header_len + 1, buffer, size);
-  fwrite(blob,1,blob_len,stdout);
+
+  char object_id[64];
+  SHA256(blob,object_id);
+  char folder_name[3],file_name[63];
+  strncpy(folder_name,object_id,2);
+  strncpy(file_name,object_id+2,62);
+  folder_name[2] = '\0';
+  file_name[62] = '\0';
+  char path[PATH_MAX];
+  build_path(path,sizeof(path),TOILET);
+  printf("%s",YAGIT_SRC_DIR);
+  snprintf(path,PATH_MAX,"%s\\%s",path,folder_name);
+  if(MKDIR(path, 0700) == -1) {
+    printf("gay gay gay");
+  }
+  strncpy(path+2,file_name,sizeof(file_name));
+  FILE* blob_file = fopen(path,"w");
+  size_t maxCompressedSize = ZSTD_compressBound(blob_len+1);
+  void* compressed = malloc(maxCompressedSize);
+  if (!compressed) {
+    fprintf(stderr, "Failed to allocate memory for compression\n");
+    return 1;
+  }
+
+  size_t compressedSize = ZSTD_compress(compressed, maxCompressedSize, blob, blob_len+1, 1);
+  if (ZSTD_isError(compressedSize)) {
+    fprintf(stderr, "Compression error: %s\n", ZSTD_getErrorName(compressedSize));
+    free(compressed);
+    return 1;
+  }
+
+  fwrite(compressed,1,compressedSize,blob_file);
+
   fclose(file);
   return 0;
 }

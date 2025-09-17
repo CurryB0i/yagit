@@ -2,3 +2,6 @@ build/
 CMakeFiles/
 .cache/
 compile_commands.json
+test.txt
+test
+.yagit/

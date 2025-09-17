@@ -33,7 +33,6 @@ int is_yagit_repo() {
         continue;
       }
 
-
       if(S_ISDIR(st.st_mode) && strcmp(entry->d_name,".yagit")==0) {
         snprintf(YAGIT_SRC_DIR,sizeof(YAGIT_SRC_DIR),"%s",path);
         found = 1;

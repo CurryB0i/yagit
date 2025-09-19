@@ -19,7 +19,15 @@ extern const char* folders[];
 #define NO_OF_FILES 5
 extern const char* files[];
 
+extern char (*staged)[PATH_MAX];
+extern size_t staged_count;
+extern char (*untracked)[PATH_MAX];
+extern size_t untracked_count;
+
 // working dir
 extern char YAGIT_SRC_DIR[PATH_MAX];
+extern char CURRENT_DIR[PATH_MAX];
+//yagit dir name
+extern char YAGIT_DIR[7];
 
-void build_path(char* buffer, size_t size, const char* name);
+void build_path(char* buffer, int n, ...);

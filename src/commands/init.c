@@ -37,7 +37,8 @@ int init_command(int argc, char* argv[]) {
         }    
       }
 
-      for(int i=0; i<NO_OF_FILES; i++) {
+      //exclude limbo from file creations while initing
+      for(int i=1; i<NO_OF_FILES; i++) {
         char filePath[PATH_MAX];
         snprintf(filePath, sizeof(filePath), ".yagit/%s", files[i]);
 

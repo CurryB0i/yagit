@@ -1,10 +1,12 @@
 #include "commands.h"
-#include "check.h"
+#include "globals.h"
+#include "initialize.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-
 int main(int argc,char* argv[]) {
+  init();
   if(argc < 2) {
     printf("What, u wanted to say hi? bitch!\n");
     return 0;
@@ -25,5 +27,8 @@ int main(int argc,char* argv[]) {
   }
 
   printf("i want u to take '%s' and get the fuck out of here now, u nutsack.",command);
+
+  free(untracked);
+  free(staged);
   return 1;
 }

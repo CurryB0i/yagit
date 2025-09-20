@@ -26,10 +26,15 @@ const char* files[] = {
   STUFFED_SNITCHES
 };
 
+char (*visited)[PATH_MAX];
+size_t visited_count = 0;
+size_t visited_cap = 8;
 char (*staged)[PATH_MAX];
 size_t staged_count = 0;
+size_t staged_cap = 8;
 char (*untracked)[PATH_MAX];
 size_t untracked_count = 0;
+size_t untracked_cap = 8;
 
 void build_path(char* buffer, int n, ...) {
   va_list args;

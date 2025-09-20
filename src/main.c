@@ -1,6 +1,6 @@
 #include "commands.h"
 #include "globals.h"
-#include "initialize.h"
+#include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,6 +20,10 @@ int main(int argc,char* argv[]) {
   if(is_yagit_repo() != 1) {
     printf("if u not invited, dont ask to gooooo - duke dennis.");
     return 1;
+  }
+
+  if(strcmp(command,"status")==0){
+    return status_command();
   }
 
   if(strcmp(command,"add")==0){

@@ -1,9 +1,3 @@
-#include "add.h"
-#include "initialize.h"
-#include "sha256.h"
-#include "globals.h"
-#include "zstd.h"
-#include "platform.h"
 #include <dirent.h>
 #include <limits.h>
 #include <stdint.h>
@@ -11,8 +5,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include "add.h"
+#include "utils.h"
+#include "sha256.h"
+#include "globals.h"
+#include "zstd.h"
+#include "platform.h"
 
-int add_file(const char* file_path, const FILE* limbo_file) {
+int add_file(const char* file_path, FILE* limbo_file, bool lazy_recurse) {
   FILE* file = fopen(file_path,"rb");
   struct stat st;
 
@@ -26,6 +26,7 @@ int add_file(const char* file_path, const FILE* limbo_file) {
     printf("adas");
     return 1;
   }
+
   size_t file_size = st.st_size;
 
   char* buffer = malloc(file_size);
@@ -36,6 +37,7 @@ int add_file(const char* file_path, const FILE* limbo_file) {
   }
 
   size_t buffer_len = fread(buffer, 1, file_size, file);
+  crlf_to_lf(buffer, &buffer_len);
   fclose(file);
 
   //create yagit blob object
@@ -48,7 +50,6 @@ int add_file(const char* file_path, const FILE* limbo_file) {
   blob[header_len] = '\0';
   memcpy(blob + header_len + 1, buffer, buffer_len);
   free(buffer);
-  fwrite(blob, 1, blob_len, stdout);
 
   //hash blob object
   uint8_t sha256_digest[SHA256_DIGEST_SIZE];
@@ -59,8 +60,8 @@ int add_file(const char* file_path, const FILE* limbo_file) {
   char toilet_file_name[63];
   sprintf(toilet_folder_name, "%02x", sha256_digest[0]);
   toilet_folder_name[2] = '\0';
-  for(int i=0; i<31; i++) {
-    sprintf(&toilet_file_name[i*2], "%02x", sha256_digest[i+1]);
+  for(int i=1; i<SHA256_DIGEST_SIZE; i++) {
+    sprintf(&toilet_file_name[(i-1)*2], "%02x", sha256_digest[i+1]);
   }
   toilet_file_name[62] = '\0';
 
@@ -103,12 +104,66 @@ int add_file(const char* file_path, const FILE* limbo_file) {
 
   char relative_path[PATH_MAX];
   strncpy(relative_path, file_path + strlen(YAGIT_SRC_DIR) + 1, sizeof(relative_path));
-  strncpy(staged[staged_count++],relative_path, PATH_MAX);
+  relative_path[PATH_MAX-1] = '\0';
+  for(size_t i=0; i<staged_count; i++) {
+    if(strcmp(staged[i], relative_path) == 0)
+      return 0;
+  }
 
+  for(size_t i=0; i<untracked_count; i++) {
+    if(strcmp(untracked[i], relative_path) == 0) {
+      for(size_t j=i; j<untracked_count; j++) {
+        strncpy(untracked[j], untracked[j+1], PATH_MAX);
+      }
+      untracked_count--;
+    }
+  }
+
+  //lazy recurse directories
+  if(lazy_recurse) {
+    char *temp = malloc(PATH_MAX);
+    if(!temp) {
+      printf("Adas");
+      return 1;
+    }
+    strncpy(temp, relative_path, PATH_MAX);
+    char* slash;
+    while((slash = strrchr(temp, PATH_SEP)) != NULL) {
+      *slash = '\0';
+      char temp2[PATH_MAX];
+      snprintf(temp2, sizeof(temp2), "%s%c", temp, PATH_SEP);
+      bool flag = false;
+      for(size_t i=0; i<untracked_count; i++) {
+        if(strcmp(untracked[i], temp2) == 0) {
+          char full_path[PATH_MAX];
+          build_path(full_path, 2, YAGIT_SRC_DIR, untracked[i]);
+          populate_dir_entries(full_path);
+          for(size_t j=i; j<untracked_count-1; j++) {
+            strncpy(untracked[j], untracked[j+1], PATH_MAX);
+          }
+          untracked_count--;
+          i--;
+          flag = true;
+        }
+      }
+      if(!flag) {
+        char full_path[PATH_MAX];
+        build_path(full_path, 2, YAGIT_SRC_DIR, temp2);
+        populate_dir_entries(full_path);
+      }
+    }
+    free(temp);
+  }
+
+  if(staged_count == staged_cap) {
+    staged_cap *= 2;
+    staged = realloc(staged, staged_cap * sizeof(*staged));
+  }
+  strncpy(staged[staged_count++],relative_path, PATH_MAX);
   return 0;
 }
 
-int add_folder(const char* folder_path, const FILE* limbo_file) {
+int add_folder(const char *folder_path, FILE *limbo_file) {
   DIR* dir = opendir(folder_path);
   struct dirent* entry;
   struct stat st;
@@ -123,7 +178,7 @@ int add_folder(const char* folder_path, const FILE* limbo_file) {
       continue;
     }
     char full_path[PATH_MAX];
-    snprintf(full_path, sizeof(full_path), "%s%c%s", folder_path, PATH_SEP, entry->d_name);
+    build_path(full_path, 2, folder_path, entry->d_name);
     if(stat(full_path, &st) == -1) {
       continue;
     }
@@ -133,7 +188,7 @@ int add_folder(const char* folder_path, const FILE* limbo_file) {
     }
 
     if(S_ISREG(st.st_mode)) {
-      add_file(full_path, limbo_file);
+      add_file(full_path, limbo_file, false);
     }
   }
 
@@ -145,11 +200,15 @@ int add_command(int argc, char **argv) {
   struct dirent* entry;
   struct stat st;
 
-
   if(argc == 1) {
     printf("add who bitch, yo mama??");
     return 0;
   }
+
+  char limbo_path[PATH_MAX];
+  build_path(limbo_path, 3, YAGIT_SRC_DIR, YAGIT_DIR, LIMBO);
+  populate_limbo();
+  FILE* limbo_file = fopen(limbo_path, "wb");
 
   for(int i=2; i<=argc; i++) {
     char entry_path[PATH_MAX];
@@ -159,32 +218,34 @@ int add_command(int argc, char **argv) {
       return 1;
     }
 
-    char limbo_path[PATH_MAX];
-    build_path(limbo_path, 3, YAGIT_SRC_DIR, YAGIT_DIR, LIMBO);
-    FILE* limbo_file = fopen(limbo_path, "w");
-
     if(S_ISDIR(st.st_mode)) {
       add_folder(entry_path, limbo_file);
+      char relative_path[PATH_MAX];
+      snprintf(relative_path, sizeof(relative_path), "%s%c", entry_path + strlen(YAGIT_SRC_DIR) + 1, PATH_SEP);
+      relative_path[PATH_MAX-1] = '\0';
+      for(size_t j=0; j<untracked_count; j++) {
+        if(strcmp(untracked[j], relative_path) == 0) {
+          for(size_t k=j; k<untracked_count-1; k++) {
+            strncpy(untracked[k], untracked[k+1], PATH_MAX);
+          }
+          untracked_count--;
+        }
+      }
     }
 
     if(S_ISREG(st.st_mode)) {
-      add_file(entry_path, limbo_file);
+      add_file(entry_path, limbo_file, true);
     }
-
-    fclose(limbo_file);
   }
+
  
-  populate_limbo();
-  char limbo_file_path[PATH_MAX];
-  build_path(limbo_file_path, 3, YAGIT_SRC_DIR, YAGIT_DIR, LIMBO);
-  FILE* limbo_file = fopen(limbo_file_path, "w");
   fprintf(limbo_file, "Untracked (%zu)\n", untracked_count);
   for(size_t j=0; j<untracked_count; j++) {
     fprintf(limbo_file, "? %s\n", untracked[j]);
   }
   fprintf(limbo_file, "\nStaged (%zu)\n", staged_count);
   for(size_t j=0; j<staged_count; j++) {
-    fprintf(limbo_file, "A %s", staged[j]);
+    fprintf(limbo_file, "A %s\n", staged[j]);
   }
   fclose(limbo_file);
   return 0;

@@ -2,6 +2,5 @@ build/
 CMakeFiles/
 .cache/
 compile_commands.json
-test
 git_test
 .yagit/

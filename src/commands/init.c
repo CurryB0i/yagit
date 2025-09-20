@@ -1,10 +1,10 @@
-#include "init.h"
-#include "platform.h"
-#include "globals.h"
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+#include "init.h"
+#include "platform.h"
+#include "globals.h"
 
 int init_command(int argc, char* argv[]) {
   struct stat st = {0};

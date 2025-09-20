@@ -1,5 +1,6 @@
 #pragma once
 #include <limits.h>
+#include <stdbool.h>
 
 //.yagit folders
 #define TOILET "toilet"
@@ -19,10 +20,15 @@ extern const char* folders[];
 #define NO_OF_FILES 5
 extern const char* files[];
 
+extern char (*visited)[PATH_MAX];
+extern size_t visited_count;
+extern size_t visited_cap;
 extern char (*staged)[PATH_MAX];
 extern size_t staged_count;
+extern size_t staged_cap;
 extern char (*untracked)[PATH_MAX];
 extern size_t untracked_count;
+extern size_t untracked_cap;
 
 // working dir
 extern char YAGIT_SRC_DIR[PATH_MAX];

@@ -1,10 +1,8 @@
 #include <stdarg.h>
 #include <limits.h>
 #include <stddef.h>
-#include <stdio.h>
-#include <string.h>
 #include "globals.h"
-#include "platform.h"
+#include "limbo.h"
 
 char YAGIT_SRC_DIR[PATH_MAX];
 char CURRENT_DIR[PATH_MAX];
@@ -26,30 +24,6 @@ const char* files[] = {
   STUFFED_SNITCHES
 };
 
-char (*visited)[PATH_MAX];
-size_t visited_count = 0;
-size_t visited_cap = 8;
-char (*staged)[PATH_MAX];
-size_t staged_count = 0;
-size_t staged_cap = 8;
-char (*untracked)[PATH_MAX];
-size_t untracked_count = 0;
-size_t untracked_cap = 8;
-
-void build_path(char* buffer, int n, ...) {
-  va_list args;
-  va_start(args, n);
-
-  strncpy(buffer, va_arg(args, const char* ), PATH_MAX);
-
-  for(int i=1; i<n; i++) {
-    int index = strlen(buffer);
-    if(buffer[index-1] != PATH_SEP)
-      buffer[index] = PATH_SEP;
-    buffer[++index] = '\0';
-    const char *piece = va_arg(args, const char *);
-    strncat(buffer, piece, PATH_MAX - strlen(buffer) - 1);
-  }
-  va_end(args);
+void init() {
+  limbo_init();
 }
-

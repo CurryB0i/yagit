@@ -1,8 +1,7 @@
 #include "commands.h"
-#include "globals.h"
 #include "utils.h"
+#include "globals.h"
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 int main(int argc,char* argv[]) {
@@ -22,17 +21,10 @@ int main(int argc,char* argv[]) {
     return 1;
   }
 
-  if(strcmp(command,"status")==0){
-    return status_command();
-  }
-
   if(strcmp(command,"add")==0){
     return add_command(argc-1, argv);
   }
 
   printf("i want u to take '%s' and get the fuck out of here now, u nutsack.",command);
-
-  free(untracked);
-  free(staged);
   return 1;
 }

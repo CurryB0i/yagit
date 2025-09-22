@@ -27,4 +27,6 @@ target_include_directories(yagit PRIVATE
     ${ZSTD_ROOT}/lib/decompress
 )
 
+target_link_libraries(yagit ws2_32)
+
 target_compile_options(yagit PRIVATE -fvisibility=default)

@@ -18,8 +18,8 @@ int add_file(const char* file_path) {
   struct stat st;
 
   if(stat(file_path, &st) == -1) return 1;
-  limbo_entry.mtime_sec = st.st_mtime;
-  limbo_entry.mtime_nsec = 0;
+  limbo_entry.mtime_sec = ST_MTIM_SEC(st);
+  limbo_entry.mtime_nsec = ST_MTIM_NSEC(st);
   limbo_entry.mode = st.st_mode;
   limbo_entry.fileSize = st.st_size;
 
@@ -76,7 +76,8 @@ int add_file(const char* file_path) {
   uint8_t sha256_digest[SHA256_DIGEST_SIZE];
   SHA256((const uint8_t*)blob, blob_len, sha256_digest);
   memcpy(limbo_entry.hash, sha256_digest, SHA256_DIGEST_SIZE);
-  add_limbo_entry(limbo_entry);
+  int added = add_limbo_entry(&limbo_entry);
+  if(added) return 0;
 
   //extract object folder and file name from hash
   char toilet_folder_name[3];
@@ -168,9 +169,6 @@ int add_command(int argc, char **argv) {
     return 0;
   }
 
-  char limbo_path[PATH_MAX];
-  build_path(limbo_path, 3, YAGIT_SRC_DIR, YAGIT_DIR, LIMBO);
-
   for(int i=2; i<=argc; i++) {
     char entry_path[PATH_MAX];
     snprintf(entry_path, sizeof(entry_path), "%s%c%s", CURRENT_DIR, PATH_SEP, argv[i]);
@@ -188,26 +186,7 @@ int add_command(int argc, char **argv) {
     }
   }
 
-  FILE* limbo_file = fopen(limbo_path, "wb");
-  size_t buffer_size = calc_limbo_buffer_size();
-  uint8_t *buffer = malloc(buffer_size + SHA256_DIGEST_SIZE);
-  memcpy(buffer, &limbo.header, sizeof(LimboHeader));
-  memcpy(buffer, limbo.entries, limbo.header.entry_count * sizeof(LimboEntry));
-  SHA256(buffer, buffer_size, limbo.checksum);
-  for(int i=0; i<SHA256_DIGEST_SIZE; i++) {
-    printf("%02x",limbo.checksum[i]);
-  }
-  printf("\n");
-  memcpy(buffer + buffer_size, &limbo.checksum, SHA256_DIGEST_SIZE);
-  fwrite(buffer, buffer_size + SHA256_DIGEST_SIZE, 1, limbo_file);
-  fclose(limbo_file);
-  limbo_file = fopen(limbo_path, "rb");
-  uint8_t hash[buffer_size + SHA256_DIGEST_SIZE];
-  fread(hash, buffer_size+SHA256_DIGEST_SIZE, 1, limbo_file);
-  for(int i=0; i<SHA256_DIGEST_SIZE; i++) {
-    printf("%02x",hash[buffer_size + i]);
-  }
-  fclose(limbo_file);
+  write_limbo();
   return 0;
 }
 

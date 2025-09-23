@@ -5,7 +5,6 @@
 #include <string.h>
 
 int main(int argc,char* argv[]) {
-  init();
   if(argc < 2) {
     printf("What, u wanted to say hi? bitch!\n");
     return 0;
@@ -21,8 +20,14 @@ int main(int argc,char* argv[]) {
     return 1;
   }
 
+  init();
+
   if(strcmp(command,"add")==0){
     return add_command(argc-1, argv);
+  }
+
+  if(strcmp(command,"status")==0){
+    return status_command();
   }
 
   printf("i want u to take '%s' and get the fuck out of here now, u nutsack.",command);

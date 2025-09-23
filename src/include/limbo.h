@@ -27,7 +27,6 @@ typedef struct {
 
 extern Limbo limbo;
 void limbo_init();
-void add_limbo_entry(LimboEntry entry);
-size_t calc_limbo_buffer_size();
-void network_order_limbo();
-void host_order_limbo();
+bool add_limbo_entry(LimboEntry *entry);
+void read_limbo();
+void write_limbo();

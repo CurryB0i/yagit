@@ -164,12 +164,12 @@ int add_command(int argc, char **argv) {
   struct dirent* entry;
   struct stat st;
 
-  if(argc == 1) {
+  if(argc == 2) {
     printf("add who bitch, yo mama??");
     return 0;
   }
 
-  for(int i=2; i<=argc; i++) {
+  for(int i=2; i<argc; i++) {
     char entry_path[PATH_MAX];
     snprintf(entry_path, sizeof(entry_path), "%s%c%s", CURRENT_DIR, PATH_SEP, argv[i]);
     if(stat(entry_path, &st) == -1) {

@@ -1,3 +1,3 @@
 #pragma once
 
-int init_command(int argc,char* argv[]);
+int init_command(int, char**);

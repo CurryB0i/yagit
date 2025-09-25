@@ -2,9 +2,10 @@
 
 #include <stddef.h>
 
-#define RED "\e[0;31m"
-#define GREEN "\e[0;32m"
-#define MAGENTA "\e[0;35m"
+#define RED "\e[0;91m"
+#define GREEN "\e[0;92m"
+#define MAGENTA "\e[0;95m"
+#define BLUE "\e[0;94m"
 #define CYAN "\e[0;96m"
 #define RESET "\e[0m"
 

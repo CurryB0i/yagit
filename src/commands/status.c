@@ -85,6 +85,20 @@ bool recursively_empty(const char* dir_path) {
   return true;
 }
 
+bool tracked(const char* entry) {
+  for(size_t i=0; i<staged_count; i++) {
+    if(strcmp(staged[i], entry) == 0)
+      return true;
+  }
+
+  for(size_t i=0; i<unstaged_count; i++) {
+    if(strcmp(unstaged[i], entry) == 0)
+      return true;
+  }
+
+  return false;
+}
+
 void walk_dir(const char* path) {
   DIR *dir;
   struct dirent *entry;
@@ -116,6 +130,9 @@ void walk_dir(const char* path) {
     }
 
     if(S_ISREG(st.st_mode)) {
+      if(tracked(entry_path + strlen(YAGIT_SRC_DIR) + 1))
+        continue;
+
       if(untracked_cap == untracked_count) {
         untracked_cap *= 2;
         untracked = realloc(untracked, untracked_cap * PATH_MAX);

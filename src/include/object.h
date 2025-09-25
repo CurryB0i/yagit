@@ -7,7 +7,7 @@ struct Object {
   char type[4];
   struct Object **objects;
   size_t count;
-  size_t capcaity;
+  size_t capacity;
   char hash[SHA256_DIGEST_SIZE];
   char name[PATH_MAX];
 };
@@ -15,3 +15,6 @@ struct Object {
 typedef struct Object Object;
 
 extern Object root;
+void object_init();
+void add_object(Object*, Object*);
+void print_tree(Object*, int);

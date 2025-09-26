@@ -13,6 +13,20 @@
 #include "zstd.h"
 #include "platform.h"
 
+uint32_t normalize_mode (mode_t mode) {
+  if (S_ISREG(mode)) {
+    if (mode & 0111) {
+      return 0100755;
+    } else {
+      return 0100644;
+    }
+  } else if (S_ISDIR(mode)) {
+    return 0040000;
+  } else {
+    return mode;
+  }
+}
+
 int add_file(const char* file_path) {
   LimboEntry limbo_entry;
   struct stat st;
@@ -20,7 +34,7 @@ int add_file(const char* file_path) {
   if(stat(file_path, &st) == -1) return 1;
   limbo_entry.mtime_sec = ST_MTIM_SEC(st);
   limbo_entry.mtime_nsec = ST_MTIM_NSEC(st);
-  limbo_entry.mode = st.st_mode;
+  limbo_entry.mode = normalize_mode(st.st_mode);
   limbo_entry.fileSize = st.st_size;
 
   char relative_path[PATH_MAX];
@@ -66,6 +80,10 @@ int add_file(const char* file_path) {
   int header_len = snprintf(header, sizeof(header), "blob %zu", buffer_len);
   size_t blob_len = header_len + buffer_len + 1;
   char* blob = malloc(blob_len);
+  if(!blob) {
+    printf("adas");
+    return 1;
+  }
 
   memcpy(blob, header, header_len);
   blob[header_len] = '\0';
@@ -80,50 +98,8 @@ int add_file(const char* file_path) {
   if(added) return 0;
 
   //extract object folder and file name from hash
-  char toilet_folder_name[3];
-  char toilet_file_name[63];
-  sprintf(toilet_folder_name, "%02x", sha256_digest[0]);
-  toilet_folder_name[2] = '\0';
-  for(int i=1; i<SHA256_DIGEST_SIZE; i++) {
-    sprintf(&toilet_file_name[(i-1)*2], "%02x", sha256_digest[i]);
-  }
-  toilet_file_name[62] = '\0';
-
-  //create folder and file
-  char toilet_path[PATH_MAX];
-  build_path(toilet_path, 3, YAGIT_SRC_DIR, YAGIT_DIR, TOILET);
-  char toilet_folder_path[PATH_MAX];
-  snprintf(toilet_folder_path, sizeof(toilet_folder_path), "%s%c%s", toilet_path, PATH_SEP, toilet_folder_name);
-  char toilet_file_path[PATH_MAX];
-  snprintf(toilet_file_path, sizeof(toilet_file_path), "%s%c%s", toilet_folder_path, PATH_SEP, toilet_file_name);
-  if(stat(toilet_folder_path, &st) == -1 && MKDIR(toilet_folder_path, 0700) == -1) {
-    printf("adas");
-    return 1;
-  }
-
-  FILE* toilet_file = fopen(toilet_file_path,"w");
-  if(toilet_file == NULL) {
-    printf("adas");
-    return 1;
-  }
-
-  //compress content
-  size_t maxCompressedSize = ZSTD_compressBound(blob_len);
-  void* compressed = malloc(maxCompressedSize);
-
-  size_t compressedSize = ZSTD_compress(compressed, maxCompressedSize, blob, blob_len, 1);
-  if (ZSTD_isError(compressedSize)) {
-    fprintf(stderr, "Compression error: %s\n", ZSTD_getErrorName(compressedSize));
-    free(compressed);
-    free(blob);
-    return 1;
-  }
+  write_into_toilet(sha256_digest, blob, blob_len);
   free(blob);
-
-  //write compressed content into object file
-  fwrite(compressed, compressedSize, 1, toilet_file);
-  free(compressed);
-  fclose(toilet_file);
   return 0;
 }
 
@@ -156,12 +132,11 @@ int add_folder(const char *folder_path) {
     }
   }
 
+  closedir(dir);
   return 0;
 }
 
 int add_command(int argc, char **argv) {
-  DIR* dir;
-  struct dirent* entry;
   struct stat st;
 
   if(argc == 2) {
@@ -189,19 +164,3 @@ int add_command(int argc, char **argv) {
   write_limbo();
   return 0;
 }
-
-/*
-void* decompressed = malloc(blob_len);
-if (!decompressed) {
-    fprintf(stderr, "Failed to allocate memory for decompression\n");
-    free(compressed);
-    return 1;
-}
-size_t decompressedSize = ZSTD_decompress(decompressed, blob_len, compressed, compressedSize);
-if (ZSTD_isError(decompressedSize)) {
-  fprintf(stderr, "Decompression error: %s\n", ZSTD_getErrorName(decompressedSize));
-  free(compressed);
-  free(decompressed);
-  return 1;
-}
-*/

@@ -4,6 +4,7 @@
 #include "globals.h"
 #include "limbo.h"
 #include "object.h"
+#include "commit.h"
 
 char YAGIT_SRC_DIR[PATH_MAX];
 char CURRENT_DIR[PATH_MAX];
@@ -28,4 +29,5 @@ const char* files[] = {
 void init() {
   limbo_init();
   object_init();
+  commit_init();
 }

@@ -1,5 +1,6 @@
 #include <dirent.h>
 #include <limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,6 +8,8 @@
 #include <stdbool.h>
 #include "globals.h"
 #include "platform.h"
+#include "sha256.h"
+#include "zstd.h"
 #include "utils.h"
 
 void crlf_to_lf(char *buffer, size_t *buffer_len) {
@@ -103,3 +106,103 @@ void build_path(char* buffer, int n, ...) {
   }
   va_end(args);
 }
+
+void write_into_toilet(uint8_t hash[SHA256_DIGEST_SIZE], char *content, size_t size) {
+  struct stat st;
+  char folder_name[3];
+  char file_name[63];
+  sprintf(folder_name, "%02x", hash[0]);
+  folder_name[2] = '\0';
+  for(int i=1; i<SHA256_DIGEST_SIZE; i++) {
+    sprintf(&file_name[(i-1)*2], "%02x", hash[i]);
+  }
+  file_name[62] = '\0';
+
+  char path[PATH_MAX];
+  build_path(path, 3, YAGIT_SRC_DIR, YAGIT_DIR, TOILET);
+  char folder_path[PATH_MAX];
+  snprintf(folder_path, sizeof(folder_path), "%s%c%s", path, PATH_SEP, folder_name);
+  char file_path[PATH_MAX];
+  snprintf(file_path, sizeof(file_path), "%s%c%s", folder_path, PATH_SEP, file_name);
+  if(stat(folder_path, &st) == -1 && MKDIR(folder_path, 0700) == -1) {
+    printf("adas");
+    return;
+  }
+
+  FILE* file = fopen(file_path,"wb");
+  if(file == NULL) {
+    printf("adas");
+    return;
+  }
+
+  size_t maxCompressedSize = ZSTD_compressBound(size);
+  void* compressed = malloc(maxCompressedSize);
+
+  size_t compressedSize = ZSTD_compress(compressed, maxCompressedSize, content, size, 1);
+  if (ZSTD_isError(compressedSize)) {
+    fprintf(stderr, "Compression error: %s\n", ZSTD_getErrorName(compressedSize));
+    free(compressed);
+    return;
+  }
+  fwrite(compressed, 1, compressedSize, file);
+  free(compressed);
+  fclose(file);
+}
+
+void* read_from_toilet(uint8_t hash[SHA256_DIGEST_SIZE], size_t* out_size) {
+    struct stat st;
+    char folder_name[3];
+    char file_name[63];
+
+    sprintf(folder_name, "%02x", hash[0]);
+    folder_name[2] = '\0';
+    for (int i = 1; i < SHA256_DIGEST_SIZE; i++) {
+        sprintf(&file_name[(i-1)*2], "%02x", hash[i]);
+    }
+    file_name[62] = '\0';
+
+    char compressed_file_path[PATH_MAX];
+    build_path(compressed_file_path, 5, YAGIT_SRC_DIR, YAGIT_DIR, TOILET, folder_name, file_name);
+
+    if (stat(compressed_file_path, &st) == -1) return NULL;
+
+    FILE *compressed_file = fopen(compressed_file_path, "rb");
+    if (!compressed_file) return NULL;
+
+    fseek(compressed_file, 0, SEEK_END);
+    size_t srcsize = ftell(compressed_file);
+    rewind(compressed_file);
+
+    void* compressed = malloc(srcsize);
+    if (!compressed) { fclose(compressed_file); return NULL; }
+
+    fread(compressed, 1, srcsize, compressed_file);
+    fclose(compressed_file);
+
+    unsigned long long size = ZSTD_getFrameContentSize(compressed, srcsize);
+    if (size == ZSTD_CONTENTSIZE_ERROR || size == ZSTD_CONTENTSIZE_UNKNOWN) {
+        fprintf(stderr, "Cannot determine decompressed size\n");
+        free(compressed);
+        return NULL;
+    }
+
+    void* decompressed = malloc(size);
+    if (!decompressed) {
+        fprintf(stderr, "Failed to allocate memory for decompression\n");
+        free(compressed);
+        return NULL;
+    }
+
+    size_t decompressedSize = ZSTD_decompress(decompressed, size, compressed, srcsize);
+    free(compressed);
+
+    if (ZSTD_isError(decompressedSize)) {
+        fprintf(stderr, "Decompression error: %s\n", ZSTD_getErrorName(decompressedSize));
+        free(decompressed);
+        return NULL;
+    }
+
+    if (out_size) *out_size = decompressedSize;
+    return decompressed;
+}
+

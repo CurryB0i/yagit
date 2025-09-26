@@ -12,7 +12,6 @@ Object root;
 
 void object_init() {
   struct stat st;
-
   if(stat(YAGIT_SRC_DIR, &st) == -1) return;
   strcpy(root.type, "tree");
   strcpy(root.name, YAGIT_SRC_DIR);
@@ -53,5 +52,16 @@ void print_tree(Object *obj, int depth) {
       print_tree(obj->objects[i], depth+1);
     }
 
+  }
+}
+
+void free_tree(Object *obj) {
+  for (size_t i = 0; i < obj->count; i++) {
+    if (strcmp(obj->objects[i]->type, "tree") == 0) {
+      free_tree(obj->objects[i]);
+      free(obj->objects[i]);
+    } else {
+      free(obj->objects[i]);
+    }
   }
 }

@@ -6,6 +6,8 @@
 //.yagit folders
 #define TOILET "toilet"
 #define SNITCHES "snitches"
+  #define HEAD "head"
+  #define BRANCH "colonizer"
 #define LANDMINES "landmines"
 #define USELESS_TRIVIA "useless_trivia"
 #define DIRT "dirt"

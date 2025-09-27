@@ -28,6 +28,6 @@ const char* files[] = {
 
 void init() {
   limbo_init();
-  object_init();
+  tree_init();
   commit_init();
 }

@@ -54,7 +54,7 @@ void calculate_tree_hash(Tree* obj) {
     return;
   }
   size_t entries_len = 0;
-  
+
   for(size_t i=0; i<obj->count; i++) {
     if(obj->objects[i]->type == OBJ_TREE) {
       calculate_tree_hash(&(obj->objects[i]->v.tree));
@@ -64,7 +64,7 @@ void calculate_tree_hash(Tree* obj) {
     memcpy(entries + entries_len + entry_len + 1, obj->objects[i]->v.tree.hash, SHA256_DIGEST_SIZE);
     entries_len += entry_len + SHA256_DIGEST_SIZE + 1;
   }
-  
+
   char header[64];
   int header_len = snprintf(header, sizeof(header), "tree %zu", entries_len);
   size_t buffer_len = header_len + 1 + entries_len;
@@ -102,32 +102,49 @@ void make_tree(const char* path, Object* blob) {
 void make_commit_object() {
   size_t cap = 8192;
   struct stat st;
-  size_t offset = 0;
-  char* content = malloc(cap);
-  if(!content) {
+  size_t buffer_size = 0;
+  char* buffer = malloc(cap);
+  if(!buffer) {
     return;
   }
-  strcpy(content, "tree ");
-  memcpy(content + 5, root.hash, SHA256_DIGEST_SIZE);
-  offset += SHA256_DIGEST_SIZE + 6;
+  strcpy(buffer, "tree ");
+  for(uint8_t i=0; i<SHA256_DIGEST_SIZE; i++) {
+    sprintf(buffer + 5 + i*2, "%02x", root.hash[i]);
+  }
+  buffer_size += SHA256_DIGEST_SIZE*2 + 5;
 
   if(commit.parent_count > 0) {
-    strcpy(content + offset, "parent ");
-    memcpy(content + offset + 7, commit.tree_hash, SHA256_DIGEST_SIZE);
-    offset += SHA256_DIGEST_SIZE + 7;
+    strcpy(buffer + buffer_size, "parent ");
+    for(size_t i=0; i<SHA256_DIGEST_SIZE; i++) {
+      sprintf(buffer + 5 + i*2, "%02x", commit.hash[i]);
+    }
+    buffer_size += SHA256_DIGEST_SIZE*2 + 7;
   }
 
-  offset += snprintf(content + offset, 8192, "author %s %sdate", "unknown", "unknown");
+  char tz_offset[7];
+  snprintf(tz_offset, sizeof(tz_offset), "%+03d%02d", commit.author.tz_offset_minutes / 60, abs(commit.author.tz_offset_minutes % 60));
+  buffer_size += sprintf(buffer + buffer_size, "\nauthor %s %s %ld %s\n\n%s", 
+      commit.author.name, commit.author.email, commit.author.when, tz_offset, commit.message);
+
   uint8_t commit_hash[SHA256_DIGEST_SIZE];
   char* commit_object = malloc(cap);
-  size_t header_len = snprintf(commit_object, 64, "commit %zu", offset);
-  commit_object[header_len] = '\0';
-  memcpy(commit_object + header_len + 1, content, cap - header_len - 1);
-  fwrite(commit_object, 1, header_len + offset + 1, stdout);
-  SHA256((const uint8_t*)commit_object, offset, commit_hash);
-  write_into_toilet(commit_hash, commit_object, header_len + offset + 1);
-  size_t decompressed;
-  free(content);
+  size_t header_len = snprintf(commit_object, 64, "commit %zu", buffer_size);
+  memcpy(commit_object + header_len + 1, buffer, cap - header_len - 1);
+  size_t commit_object_size = buffer_size + header_len + 1;
+  SHA256((const uint8_t*)commit_object, commit_object_size, commit_hash);
+  write_into_toilet(commit_hash, commit_object, commit_object_size);
+
+  char commit_hex_hash[SHA256_DIGEST_SIZE*2 + 1];
+  for(size_t i=0; i<SHA256_DIGEST_SIZE; i++) {
+    sprintf(commit_hex_hash + i*2, "%02x", commit_hash[i]);
+  }
+
+  char snitch_path[PATH_MAX];
+  build_path(snitch_path, 5, YAGIT_SRC_DIR, YAGIT_DIR, SNITCHES, HEADS, BRANCH);
+  FILE *snitch_file = fopen(snitch_path, "wb");
+  fwrite(commit_hash, 1, SHA256_DIGEST_SIZE, snitch_file);
+  fclose(snitch_file);
+  free(buffer);
 }
 
 int commit_command(int argc, char* argv[]) {
@@ -155,7 +172,7 @@ int commit_command(int argc, char* argv[]) {
 
   calculate_tree_hash(&root);
   make_commit_object();
-  print_tree(&root, 0);
+  print_tree(&root, 1);
   free_tree(&root);
   return 0;
 }

@@ -6,13 +6,13 @@
 //.yagit folders
 #define TOILET "toilet"
 #define SNITCHES "snitches"
-  #define HEAD "head"
+  #define HEADS "heads"
   #define BRANCH "colonizer"
 #define LANDMINES "landmines"
 #define USELESS_TRIVIA "useless_trivia"
 #define DIRT "dirt"
 #define NO_OF_FOLDERS 5
-extern const char* folders[];
+extern const char *folders[][PATH_MAX];
 
 //.yagit files
 #define YESTERDAY "yesterday"

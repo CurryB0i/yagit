@@ -64,7 +64,7 @@ int is_yagit_repo() {
       return 0;
     }
 
-    char* p = strrchr(path,PATH_SEP);
+    char* p = strrchr(path, PATH_SEP);
     if(p) {
       *p = '\0';
     }
@@ -72,10 +72,17 @@ int is_yagit_repo() {
   }
 
   for(int i=0; i<NO_OF_FOLDERS; i++) {
-    char test[PATH_MAX];
-    build_path(test, 3, path, YAGIT_DIR, folders[i]);
-    if(access(test, F_OK) == -1) {
-      printf("Where my '%s' at, nah u fucked up, just give up now.\n",folders[i]);
+    for(int j=0; folders[i][j] != NULL; j++) {
+      char test[PATH_MAX];
+      if(j == 0) {
+        build_path(test, 3, YAGIT_SRC_DIR, YAGIT_DIR, folders[i][0]);
+      } else {
+        build_path(test, 4, YAGIT_SRC_DIR, YAGIT_DIR, folders[i][0], folders[i][j]);
+      }
+
+      if(access(test, F_OK) == -1) {
+        printf("Where my '%s' at, nah u fucked up, just give up now.\n", folders[i][j]);
+      }
     }
   }
 

@@ -33,6 +33,7 @@ typedef struct {
 } Tree;
 
 typedef struct {
+  uint8_t hash[SHA256_DIGEST_SIZE];
   uint8_t tree_hash[SHA256_DIGEST_SIZE];
   uint8_t (*parent_hash)[SHA256_DIGEST_SIZE];
   size_t parent_count;

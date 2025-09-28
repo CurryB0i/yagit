@@ -3,10 +3,12 @@
 #include "platform.h"
 #include "sha256.h"
 #include "utils.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <time.h>
 
 Tree root;
 Commit commit;
@@ -29,24 +31,36 @@ void add_object(Tree *parent, Object *child) {
   parent->objects[parent->count++] = child;
 }
 
+int get_timezone_offset_minutes(time_t now) {
+  struct tm gmt = *gmtime(&now);
+  struct tm local = *localtime(&now);
+  time_t gmt_epoch = mktime(&gmt);
+  time_t local_epoch = mktime(&local);
+  int offset = (int) difftime(local_epoch, gmt_epoch) / 60;
+  return offset;
+}
+
 void commit_init() {
   strcpy(commit.author.name, "unknown");
   strcpy(commit.author.email, "unknown");
-  commit.author.when = 10;
-  commit.author.tz_offset_minutes = 900;
-  char full_path[PATH_MAX];
+  commit.author.when = time(NULL);
+  commit.author.tz_offset_minutes = get_timezone_offset_minutes(commit.author.when);
+  commit.message = malloc(sizeof("initial commit pooki man"));
+  strcpy(commit.message, "initial commit pooki man");
+  char snitch_path[PATH_MAX];
   struct stat st;
-  build_path(full_path, 5, YAGIT_SRC_DIR, YAGIT_DIR, SNITCHES, HEAD, BRANCH);
+  build_path(snitch_path, 5, YAGIT_SRC_DIR, YAGIT_DIR, SNITCHES, HEADS, BRANCH);
   commit.parent_count = 0;
-  if(stat(full_path, &st) == -1) {
+  if(stat(snitch_path, &st) == -1) {
     commit.parent_hash = NULL;
     return;
   }
 
-  FILE *snitch = fopen(full_path, "rb");
+  FILE *snitch = fopen(snitch_path, "rb");
   uint8_t commit_hash[SHA256_DIGEST_SIZE];
   size_t decompressed_size;
-  fread(commit_hash, SHA256_DIGEST_SIZE, 1, snitch);
+  fread(commit_hash, 1, SHA256_DIGEST_SIZE, snitch);
+  memcpy(commit.hash, commit_hash, SHA256_DIGEST_SIZE);
   void* decompressed = read_from_toilet(commit_hash, &decompressed_size);
   if(!decompressed) {
     return;
@@ -80,6 +94,7 @@ void print_tree(Tree *obj, int depth) {
         printf(CYAN "| " RESET);
       print_tree(&(curr->v.tree), depth+1);
     }
+
   }
 }
 

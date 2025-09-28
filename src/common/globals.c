@@ -1,6 +1,7 @@
 #include <stdarg.h>
 #include <limits.h>
 #include <stddef.h>
+#include <stdio.h>
 #include "globals.h"
 #include "limbo.h"
 #include "object.h"
@@ -10,12 +11,12 @@ char YAGIT_SRC_DIR[PATH_MAX];
 char CURRENT_DIR[PATH_MAX];
 char YAGIT_DIR[7] = ".yagit";
 
-const char* folders[] = {
-  TOILET,
-  SNITCHES,
-  LANDMINES,
-  USELESS_TRIVIA,
-  DIRT
+const char *folders[][PATH_MAX] = {
+  { TOILET, NULL },
+  { SNITCHES, HEADS, NULL },
+  { LANDMINES, NULL },
+  { USELESS_TRIVIA, NULL },
+  { DIRT, NULL }
 };
 
 const char* files[] = {

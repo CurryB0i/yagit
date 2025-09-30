@@ -3,6 +3,7 @@
 #include "platform.h"
 #include "sha256.h"
 #include "utils.h"
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,18 +62,42 @@ void commit_init() {
   size_t decompressed_size;
   fread(commit_hash, 1, SHA256_DIGEST_SIZE, snitch);
   memcpy(commit.hash, commit_hash, SHA256_DIGEST_SIZE);
-  void* decompressed = read_from_toilet(commit_hash, &decompressed_size);
+  char* decompressed = read_from_toilet(commit_hash, &decompressed_size);
   if(!decompressed) {
     return;
   }
-  memcpy(commit.tree_hash, decompressed + 8, SHA256_DIGEST_SIZE);
-  int offset = 8;
-  decompressed += offset + SHA256_DIGEST_SIZE;
+
+  size_t offset = 0;
+  if(strncmp(decompressed, "commit ", 7) != 0) {
+    printf("treason");
+    exit(1);
+  }
+  offset += 7;
+  size_t commit_object_size = 0;
+
+  while(decompressed[offset] != '\0') {
+    commit_object_size = commit_object_size*10 + (int) (decompressed[offset++] - '0');
+  }
+  offset++; // include the '\0' character
+  
+  if(decompressed_size - offset != commit_object_size) {
+    printf("treason");
+    exit(1);
+  }
+
+  if(strncmp(decompressed + offset, "tree ", 5) != 0) {
+    printf("treason");
+    exit(1);
+  }
+  offset += 5;
+
+  memcpy(commit.tree_hash, decompressed + offset, SHA256_DIGEST_SIZE);
+  offset += SHA256_DIGEST_SIZE + 1; // +1 for \n
   while(strncmp(decompressed + offset, "parent ", 6) == 0) {
     offset += 6;
     commit.parent_hash = realloc(commit.parent_hash, ++commit.parent_count * SHA256_DIGEST_SIZE);
     memcpy(commit.parent_hash[commit.parent_count], decompressed + offset, SHA256_DIGEST_SIZE);
-    offset += SHA256_DIGEST_SIZE;
+    offset += SHA256_DIGEST_SIZE + 1; // +1 for \n
   }
   
   fclose(snitch);

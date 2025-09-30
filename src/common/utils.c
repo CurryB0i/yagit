@@ -10,6 +10,7 @@
 #include "platform.h"
 #include "sha256.h"
 #include "zstd.h"
+#include "object.h"
 #include "utils.h"
 
 void crlf_to_lf(char *buffer, size_t *buffer_len) {
@@ -144,7 +145,6 @@ void write_into_toilet(uint8_t hash[SHA256_DIGEST_SIZE], char *content, size_t s
 
   size_t maxCompressedSize = ZSTD_compressBound(size);
   void* compressed = malloc(maxCompressedSize);
-
   size_t compressedSize = ZSTD_compress(compressed, maxCompressedSize, content, size, 1);
   if (ZSTD_isError(compressedSize)) {
     fprintf(stderr, "Compression error: %s\n", ZSTD_getErrorName(compressedSize));
@@ -171,7 +171,10 @@ void* read_from_toilet(uint8_t hash[SHA256_DIGEST_SIZE], size_t* out_size) {
     char compressed_file_path[PATH_MAX];
     build_path(compressed_file_path, 5, YAGIT_SRC_DIR, YAGIT_DIR, TOILET, folder_name, file_name);
 
-    if (stat(compressed_file_path, &st) == -1) return NULL;
+    if (stat(compressed_file_path, &st) == -1) {
+      printf("oh no no no");
+      return NULL;
+    } 
 
     FILE *compressed_file = fopen(compressed_file_path, "rb");
     if (!compressed_file) return NULL;
@@ -213,3 +216,8 @@ void* read_from_toilet(uint8_t hash[SHA256_DIGEST_SIZE], size_t* out_size) {
     return decompressed;
 }
 
+void look_at_commit() {
+  size_t commit_object_size;
+  char* commit_object = read_from_toilet(commit.tree_hash, &commit_object_size);
+  fwrite(commit_object, commit_object_size, 1, stdout);
+}

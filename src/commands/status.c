@@ -143,6 +143,7 @@ void walk_dir(const char* path) {
 }
 
 int status_command() {
+  look_at_commit();
   staged = malloc(limbo.header.entry_count * sizeof(*staged));
   unstaged = malloc(limbo.header.entry_count * sizeof(*unstaged));
   untracked = malloc(untracked_cap * sizeof(*untracked));

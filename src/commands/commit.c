@@ -56,12 +56,19 @@ void calculate_tree_hash(Tree* obj) {
   size_t entries_len = 0;
 
   for(size_t i=0; i<obj->count; i++) {
+    size_t entry_len;
     if(obj->objects[i]->type == OBJ_TREE) {
       calculate_tree_hash(&(obj->objects[i]->v.tree));
-    }
-    size_t entry_len = snprintf(entries + entries_len, entries_size - entries_len, "%06o %s",
+      entry_len = snprintf(entries + entries_len, entries_size - entries_len, "%06o %s",
         obj->objects[i]->v.tree.mode, obj->objects[i]->v.tree.name);
-    memcpy(entries + entries_len + entry_len + 1, obj->objects[i]->v.tree.hash, SHA256_DIGEST_SIZE);
+      entries[entries_len + entry_len] = '\0';
+      memcpy(entries + entries_len + entry_len + 1, obj->objects[i]->v.tree.hash, SHA256_DIGEST_SIZE);
+    } else {
+      entry_len = snprintf(entries + entries_len, entries_size - entries_len, "%06o %s",
+        obj->objects[i]->v.blob.mode, obj->objects[i]->v.blob.name);
+      entries[entries_len + entry_len] = '\0';
+      memcpy(entries + entries_len + entry_len + 1, obj->objects[i]->v.blob.hash, SHA256_DIGEST_SIZE);
+    }
     entries_len += entry_len + SHA256_DIGEST_SIZE + 1;
   }
 
@@ -86,7 +93,6 @@ void make_tree(const char* path, Object* blob) {
   Tree* parent;
   Tree* current = &root;
   while((slash = strchr(path, PATH_SEP)) != NULL) {
-
     *slash = '\0';
     parent = current;
     current = find_subtree(parent, path);

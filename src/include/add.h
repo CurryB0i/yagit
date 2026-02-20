@@ -1,3 +1,3 @@
 #pragma once
 
-int add_command(int,char**);
+int add_command(int, char**);

@@ -23,16 +23,24 @@ int main(int argc,char* argv[]) {
 
   init();
 
-  if(strcmp(command, "add") == 0){
+  if(strcmp(command, "add") == 0) {
     return add_command(argc, argv);
   }
 
-  if(strcmp(command, "status") == 0){
+  if(strcmp(command, "status") == 0) {
     return status_command();
   }
 
-  if(strcmp(command, "commit") == 0){
+  if(strcmp(command, "commit") == 0) {
     return commit_command(argc, argv);
+  }
+
+  if(strcmp(command, "log") == 0) {
+    return log_command(argc, argv);
+  }
+
+  if(strcmp(command, "cat-file") == 0) {
+    return cat_file_command(argc, argv);
   }
 
   printf("i want u to take '%s' and get the fuck out of here now, u nutsack.",command);

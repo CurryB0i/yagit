@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include "limbo.h"
 #include "globals.h"
+#include "utils.h"
 #include "platform.h"
 #include "sha256.h"
 

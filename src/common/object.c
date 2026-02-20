@@ -13,6 +13,7 @@
 
 Tree root;
 Commit commit;
+char* TYPE_MAP[3] = { "blob", "tree", "commit" };
 
 void tree_init() {
   struct stat st;

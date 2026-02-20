@@ -5,6 +5,7 @@
 #include "init.h"
 #include "platform.h"
 #include "globals.h"
+#include "utils.h"
 
 int init_command(int argc, char* argv[]) {
   struct stat st = {0};

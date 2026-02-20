@@ -3,11 +3,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+typedef unsigned int Mode_t;
+
 //.yagit folders
 #define TOILET "toilet"
 #define SNITCHES "snitches"
-  #define HEADS "heads"
-  #define BRANCH "colonizer"
+#define HEADS "heads"
+#define BRANCH "colonizer"
 #define LANDMINES "landmines"
 #define USELESS_TRIVIA "useless_trivia"
 #define DIRT "dirt"
@@ -30,4 +32,3 @@ extern char CURRENT_DIR[PATH_MAX];
 extern char YAGIT_DIR[7];
 
 void init();
-void build_path(char* buffer, int n, ...);

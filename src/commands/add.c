@@ -13,7 +13,7 @@
 #include "zstd.h"
 #include "platform.h"
 
-uint32_t normalize_mode (mode_t mode) {
+uint32_t normalize_mode (Mode_t mode) {
   if (S_ISREG(mode)) {
     if (mode & 0111) {
       return 0100755;
@@ -48,7 +48,7 @@ int add_file(const char* file_path) {
     flags |= (uint16_t) path_len;
   }
   limbo_entry.flags = flags;
-  strcpy(limbo_entry.path,relative_path);
+  strcpy(limbo_entry.path, relative_path);
 
   FILE* file = fopen(file_path,"rb");
   if(file == NULL) {
@@ -56,43 +56,18 @@ int add_file(const char* file_path) {
     return 1;
   }
 
-  //read content from file
-  if(stat(file_path, &st) == -1) {
-    printf("adas");
-    return 1;
-  }
 
-  size_t file_size = st.st_size;
-
-  char* buffer = malloc(file_size);
-  if(buffer == NULL) {
-    printf("Something happened and im not going to tell you.");
-    fclose(file);
-    return 1;
-  }
-
-  size_t buffer_len = fread(buffer, 1, file_size, file);
-  crlf_to_lf(buffer, &buffer_len);
-  fclose(file);
-
-  //create yagit blob object
-  char header[64];
-  int header_len = snprintf(header, sizeof(header), "blob %zu", buffer_len);
-  size_t blob_len = header_len + buffer_len + 1;
-  char* blob = malloc(blob_len);
-  if(!blob) {
-    printf("adas");
-    return 1;
-  }
-
-  memcpy(blob, header, header_len);
-  blob[header_len] = '\0';
-  memcpy(blob + header_len + 1, buffer, buffer_len);
-  free(buffer);
-
-  //hash blob object
+  long long file_size = (long long) st.st_size;
+  char* blob;
+  size_t blob_len;
   uint8_t sha256_digest[SHA256_DIGEST_SIZE];
-  SHA256((const uint8_t*)blob, blob_len, sha256_digest);
+  int status = calculate_blob_hash(file, file_size, &blob, &blob_len, sha256_digest);
+  fclose(file);
+  if(status != 0) {
+    free(blob);
+    return 1;
+  }
+
   memcpy(limbo_entry.hash, sha256_digest, SHA256_DIGEST_SIZE);
   int added = add_limbo_entry(&limbo_entry);
   if(added) return 0;
@@ -114,9 +89,12 @@ int add_folder(const char *folder_path) {
   }
 
   while((entry = readdir(dir)) != NULL) {
-    if(strcmp(entry->d_name,".") == 0 || strcmp(entry->d_name,"..") == 0) {
+    if(strcmp(entry->d_name,".") == 0 ||
+    strcmp(entry->d_name,"..") == 0 ||
+    strcmp(entry->d_name, YAGIT_DIR) == 0) {
       continue;
     }
+    
     char full_path[PATH_MAX];
     build_path(full_path, 2, folder_path, entry->d_name);
     if(stat(full_path, &st) == -1) {
@@ -147,6 +125,7 @@ int add_command(int argc, char **argv) {
   for(int i=2; i<argc; i++) {
     char entry_path[PATH_MAX];
     snprintf(entry_path, sizeof(entry_path), "%s%c%s", CURRENT_DIR, PATH_SEP, argv[i]);
+    GET_ABS_PATH(entry_path, entry_path, sizeof(entry_path));
     if(stat(entry_path, &st) == -1) {
       printf("LOAD OF CRAP!");
       return 1;

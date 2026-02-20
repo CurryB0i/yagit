@@ -3,6 +3,7 @@
 #include "limbo.h"
 #include "platform.h"
 #include "utils.h"
+#include "object.h"
 #include <dirent.h>
 #include <limits.h>
 #include <stdint.h>
@@ -13,25 +14,50 @@
 
 size_t staged_count = 0;
 size_t unstaged_count = 0;
+size_t committed_count = 0;
 size_t untracked_count = 0;
 size_t visited_count = 0;
 size_t untracked_cap = 8;
 char (*staged)[PATH_MAX];
 char (*unstaged)[PATH_MAX];
+char (*committed)[PATH_MAX];
 char (*untracked)[PATH_MAX];
 
 bool modified(LimboEntry *entry) {
   struct stat st;
-  char full_path[PATH_MAX];
-  build_path(full_path, 2, YAGIT_SRC_DIR, entry->path);
-  if(stat(full_path, &st) == -1) {
+  char file_path[PATH_MAX];
+  build_path(file_path, 2, YAGIT_SRC_DIR, entry->path);
+  if(stat(file_path, &st) == -1) {
     printf("poof magic");
     return true;
   }
-  if(st.st_size != entry->fileSize) return true;
+
   uint64_t calc_mtime = ((uint64_t) ST_MTIM_SEC(st) << 32) | ST_MTIM_NSEC(st);
   uint64_t act_mtime = ((uint64_t) entry->mtime_sec << 32 ) | entry->mtime_nsec;
-  if(calc_mtime != act_mtime) return true;
+  if((st.st_size != entry->fileSize) || 
+     (calc_mtime != act_mtime)) {
+
+    FILE* file = fopen(file_path, "rb");
+    long long file_size = (long long)st.st_size;
+    if(file == NULL) {
+      printf("error");
+      return false;
+    }
+
+    uint8_t sha256_digest[SHA256_DIGEST_SIZE];
+    int status = calculate_blob_hash(file, file_size, NULL, NULL, sha256_digest);
+    fclose(file);
+    if(status != 0) {
+      printf("error");
+      return true;
+    }
+
+    if(memcmp(sha256_digest, entry->hash, SHA256_DIGEST_SIZE) == 0) {
+      return false;
+    } else {
+      return true;
+    }
+  }
   return false;
 }
 
@@ -142,10 +168,43 @@ void walk_dir(const char* path) {
   }
 }
 
+void diff_against_head() {
+  size_t commit_object_size;
+  char* commit_object = read_from_toilet(commit.tree_hash, &commit_object_size);
+  if(commit_object == NULL) return;
+
+  char header[64];
+  size_t entries_len;
+  int header_len = snprintf(header, sizeof(header), "%s", commit_object);
+  int status = sscanf(header, "tree %zu", &entries_len);
+  if(status != 1) {
+    printf("ERROR");
+    exit(0);
+  }
+  char entries[entries_len];
+  memcpy(entries, commit_object + header_len + 1, entries_len);
+  char relative_path[PATH_MAX] = "";
+  read_tree_entries(committed, &committed_count, relative_path, entries, entries_len);
+
+  for(int i=0; i<committed_count; i++) {
+    for(int j=0; j<staged_count; j++) {
+      if(strncmp(committed[i], staged[j], PATH_MAX) == 0) {
+        for(int k=j; k<staged_count-1; k++) {
+          char temp[PATH_MAX];
+          strncpy(temp, staged[k], PATH_MAX);
+          strncpy(staged[k], staged[k+1], PATH_MAX);
+          strncpy(staged[k+1], temp, PATH_MAX);
+        }
+        --staged_count;
+      }
+    }
+  }
+}
+
 int status_command() {
-  look_at_commit();
   staged = malloc(limbo.header.entry_count * sizeof(*staged));
   unstaged = malloc(limbo.header.entry_count * sizeof(*unstaged));
+  committed = malloc(limbo.header.entry_count * sizeof(*committed));
   untracked = malloc(untracked_cap * sizeof(*untracked));
 
   for(size_t i=0; i<limbo.header.entry_count; i++) {
@@ -157,6 +216,7 @@ int status_command() {
   }
  
   walk_dir(YAGIT_SRC_DIR);
+  diff_against_head();
 
   if(unstaged_count != 0) {
     printf("\nUnstaged Files:\n");
@@ -185,6 +245,7 @@ int status_command() {
 
   free(staged);
   free(unstaged);
+  free(committed);
   free(untracked);
   return 0;
 }

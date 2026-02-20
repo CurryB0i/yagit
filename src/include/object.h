@@ -1,13 +1,14 @@
 #include "sha256.h"
+#include "globals.h"
 #include <limits.h>
 #include <stdint.h>
 #include <sys/types.h>
 #include <time.h>
 
 typedef enum {
-  OBJ_BLOB = 1,
-  OBJ_TREE = 2,
-  OBJ_COMMIT = 3
+  OBJ_BLOB = 0,
+  OBJ_TREE = 1,
+  OBJ_COMMIT = 2
 } ObjectType;
 
 typedef struct {
@@ -18,13 +19,13 @@ typedef struct {
 } Author;
 
 typedef struct {
-  mode_t mode;
+  Mode_t mode;
   char name[PATH_MAX];
   uint8_t hash[SHA256_DIGEST_SIZE];
 } Blob;
 
 typedef struct {
-  mode_t mode;
+  Mode_t mode;
   char name[PATH_MAX];
   uint8_t hash[SHA256_DIGEST_SIZE];
   size_t count;
@@ -49,6 +50,8 @@ typedef struct Object {
     Commit commit;
   } v;
 } Object;
+
+extern char* TYPE_MAP[];
 
 extern Tree root;
 extern Commit commit;

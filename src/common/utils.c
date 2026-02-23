@@ -12,6 +12,7 @@
 #include "zstd.h"
 #include "object.h"
 #include "utils.h"
+#include "config.h"
 
 void crlf_to_lf(char *buffer, size_t *buffer_len) {
   size_t j = 0;
@@ -22,6 +23,45 @@ void crlf_to_lf(char *buffer, size_t *buffer_len) {
     buffer[j++] = buffer[i];
   }
   *buffer_len = j;
+}
+
+void print_error(const char* msg) {
+  printf(RED "\n%s\n" RESET, msg);
+}
+
+int get_timezone_offset_minutes(time_t now) {
+  struct tm gmt = *gmtime(&now);
+  struct tm local = *localtime(&now);
+  time_t gmt_epoch = mktime(&gmt);
+  time_t local_epoch = mktime(&local);
+  int offset = (int) difftime(local_epoch, gmt_epoch) / 60;
+  return offset;
+}
+
+void print_tz_offset(int tz_offset_mins) {
+  printf("%+03d%02d", tz_offset_mins / 60, abs(tz_offset_mins % 60));
+}
+
+void print_localtime(time_t when) {
+  struct tm* local_time_info;
+  local_time_info = localtime(&when);
+
+  char time_string[80];
+  strftime(time_string, sizeof(time_string), "%a, %b. %d %Y %X", local_time_info);
+  /*
+    %Y: Year
+    %m: Month as a number (01-12)
+    %d: Day of the month (01-31)
+    %H: Hour in 24-hour format (00-23)
+    %M: Minute (00-59)
+    %S: Second (00-59)
+    %a: Abbreviated weekday name (e.g., Fri)
+    %b: Abbreviated month name (e.g., Jul)
+    %X: Locale's appropriate time representation (e.g., 10:30:45)
+    %c: Locale's appropriate date and time representation
+    %Z: Time zone name/abbreviation (if available)
+  */
+  printf("%s", time_string);
 }
 
 int is_yagit_repo() {
@@ -120,7 +160,7 @@ void print_hash(const uint8_t* sha256_digest) {
   for(int i=0; i<SHA256_DIGEST_SIZE; i++) {
     printf("%02x", sha256_digest[i]);
   }
-  printf(">\n");
+  printf(">");
 }
 
 uint8_t hex_char_to_uint8t(char hex_char) {
@@ -195,7 +235,7 @@ int calculate_blob_hash(
   return SHA256((const uint8_t*)blob, blob_len, sha256_digest);
 }
 
-void write_into_toilet(uint8_t sha256_digest[SHA256_DIGEST_SIZE], char *content, size_t size) {
+void write_into_toilet(const uint8_t* sha256_digest, char *content, size_t size) {
   struct stat st;
   char folder_name[3];
   char file_name[63];
@@ -240,7 +280,7 @@ void write_into_toilet(uint8_t sha256_digest[SHA256_DIGEST_SIZE], char *content,
   fclose(file);
 }
 
-void* read_from_toilet(uint8_t sha256_digest[SHA256_DIGEST_SIZE], size_t* out_size) {
+void* read_from_toilet(const uint8_t* sha256_digest, size_t* out_size) {
     struct stat st;
     char folder_name[3];
     char file_name[63];
@@ -301,66 +341,6 @@ void* read_from_toilet(uint8_t sha256_digest[SHA256_DIGEST_SIZE], size_t* out_si
     return decompressed;
 }
 
-void read_entry_obj(
-  char (*committed)[PATH_MAX],
-  size_t* committed_count,
-  char* relative_path,
-  uint8_t* entry_obj,
-  size_t entry_obj_len,
-  char* obj_content_out,
-  size_t* obj_content_len_out
-) {
-  char entry_boj_header[64];
-  char obj_type[4];
-  size_t obj_content_len;
-  int entry_obj_header_len = snprintf(entry_boj_header, sizeof(entry_boj_header), "%s", entry_obj);
-  sscanf(entry_obj, "%s %zu", obj_type, &obj_content_len);
-  entry_obj += entry_obj_header_len + 1;
-  if(strcmp(obj_type, "tree") == 0) {
-    read_tree_entries(committed, committed_count, relative_path, entry_obj, obj_content_len);
-  } else if(strcmp(obj_type, "blob") == 0) {
-    if(committed == NULL) {
-      if(obj_content_out != NULL && obj_content_len_out != NULL) {
-        obj_content_out = entry_obj;
-        *obj_content_len_out = obj_content_len;
-      } else {
-        printf("treason");
-        return;
-      }
-    } else {
-      strncpy(committed[(*committed_count)++], relative_path, PATH_MAX);
-    }
-  } else {
-    printf("treason");
-    return;
-  }
-}
-
-void read_tree_entries(
-  char (*committed)[PATH_MAX],
-  size_t* committed_count,
-  char* relative_path,
-  const uint8_t* entries,
-  size_t entries_length
-) {
-  size_t offset = 0;
-  Mode_t mode;
-  char name[PATH_MAX];
-  uint8_t digest[SHA256_DIGEST_SIZE];
-  while(offset < entries_length) {
-    char new_path[PATH_MAX];
-    strncpy(new_path, relative_path, PATH_MAX);
-    char entry_header[64];
-    int entry_header_len = snprintf(entry_header, sizeof(entry_header), "%s", entries + offset);
-    sscanf(entry_header, "%06o %s", &mode, name);
-    if(strcmp(new_path, "") == 0)
-      strncpy(new_path, name, PATH_MAX);
-    else
-      snprintf(new_path, PATH_MAX, "%s%c%s", new_path, PATH_SEP, name);
-    memcpy(digest, entries + offset + entry_header_len + 1, SHA256_DIGEST_SIZE);
-    size_t entry_obj_len;
-    char *entry_obj = read_from_toilet(digest, &entry_obj_len);
-    read_entry_obj(committed, committed_count, new_path, entry_obj, entry_obj_len, NULL, NULL);
-    offset += entry_header_len + SHA256_DIGEST_SIZE + 1;
-  }
+void destruct() {
+  free_commit(&commit);
 }

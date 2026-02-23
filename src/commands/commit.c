@@ -5,6 +5,7 @@
 #include "object.h"
 #include "sha256.h"
 #include "utils.h"
+#include "stage.h"
 #include "zstd.h"
 #include <stdint.h>
 #include <stdio.h>
@@ -13,11 +14,13 @@
 #include <limits.h>
 #include <string.h>
 
-Tree* find_subtree(Tree* object, const char* path) {
-  for(size_t i=0; i<object->count; i++) {
-    if(object->objects[i]->type == OBJ_TREE &&
-        strcmp(object->objects[i]->v.tree.name, path) == 0) {
-      return &(object->objects[i]->v.tree);
+char* message;
+
+Tree* find_subtree(Tree* tree, const char* path) {
+  for(size_t i=0; i<tree->object_count; i++) {
+    if(tree->objects[i]->type == OBJ_TREE &&
+        strcmp(tree->objects[i]->v.tree.name, path) == 0) {
+      return &(tree->objects[i]->v.tree);
     }
   }
   return NULL;
@@ -34,10 +37,10 @@ Tree* make_tree_object(Tree* parent, const char* path) {
     return NULL;
   }
   new->type = OBJ_TREE;
-  new->v.tree.count = 0;
+  new->v.tree.object_count = 0;
   strcpy(new->v.tree.name, path);
   new->v.tree.mode = st.st_mode;
-  new->v.tree.capacity = 8;
+  new->v.tree.object_capacity = 8;
   new->v.tree.objects = malloc(8 * sizeof(Object*));
   if(!new->v.tree.objects) {
     printf("adas");
@@ -47,27 +50,27 @@ Tree* make_tree_object(Tree* parent, const char* path) {
   return &(new->v.tree);
 }
 
-void calculate_tree_hash(Tree* obj) {
-  size_t entries_size = (8 + PATH_MAX + SHA256_DIGEST_SIZE) * obj->count;
+void calculate_tree_hash(Tree* tree) {
+  size_t entries_size = (8 + PATH_MAX + SHA256_DIGEST_SIZE) * tree->object_count;
   char *entries = malloc(entries_size);
   if(!entries) {
     return;
   }
   size_t entries_len = 0;
 
-  for(size_t i=0; i<obj->count; i++) {
+  for(size_t i=0; i<tree->object_count; i++) {
     size_t entry_len;
-    if(obj->objects[i]->type == OBJ_TREE) {
-      calculate_tree_hash(&(obj->objects[i]->v.tree));
+    if(tree->objects[i]->type == OBJ_TREE) {
+      calculate_tree_hash(&(tree->objects[i]->v.tree));
       entry_len = snprintf(entries + entries_len, entries_size - entries_len, "%06o %s",
-        obj->objects[i]->v.tree.mode, obj->objects[i]->v.tree.name);
+        tree->objects[i]->v.tree.mode, tree->objects[i]->v.tree.name);
       entries[entries_len + entry_len] = '\0';
-      memcpy(entries + entries_len + entry_len + 1, obj->objects[i]->v.tree.hash, SHA256_DIGEST_SIZE);
+      memcpy(entries + entries_len + entry_len + 1, tree->objects[i]->v.tree.hash, SHA256_DIGEST_SIZE);
     } else {
       entry_len = snprintf(entries + entries_len, entries_size - entries_len, "%06o %s",
-        obj->objects[i]->v.blob.mode, obj->objects[i]->v.blob.name);
+        tree->objects[i]->v.blob.mode, tree->objects[i]->v.blob.name);
       entries[entries_len + entry_len] = '\0';
-      memcpy(entries + entries_len + entry_len + 1, obj->objects[i]->v.blob.hash, SHA256_DIGEST_SIZE);
+      memcpy(entries + entries_len + entry_len + 1, tree->objects[i]->v.blob.hash, SHA256_DIGEST_SIZE);
     }
     entries_len += entry_len + SHA256_DIGEST_SIZE + 1;
   }
@@ -82,8 +85,8 @@ void calculate_tree_hash(Tree* obj) {
   memcpy(buffer, header, header_len);
   buffer[header_len] = '\0';
   memcpy(buffer + header_len + 1, entries, entries_len);
-  SHA256((const uint8_t*)buffer, buffer_len, obj->hash);
-  write_into_toilet(obj->hash, buffer, buffer_len);
+  SHA256((const uint8_t*)buffer, buffer_len, tree->hash);
+  write_into_toilet(tree->hash, buffer, buffer_len);
   free(entries);
   free(buffer);
 }
@@ -117,21 +120,46 @@ void make_commit_object() {
   strcpy(buffer, "tree ");
   memcpy(buffer + 5, root.hash, SHA256_DIGEST_SIZE);
   buffer_size += SHA256_DIGEST_SIZE + 5;
+  buffer[buffer_size++] = '\n';
 
-  if(commit.parent_count > 0) {
+  if(!commit.is_first) {
     strcpy(buffer + buffer_size, "parent ");
     memcpy(buffer + buffer_size + 7, commit.hash, SHA256_DIGEST_SIZE);
     buffer_size += SHA256_DIGEST_SIZE + 7;
+    buffer[buffer_size++] = '\n';
   }
 
   char tz_offset[7];
-  snprintf(tz_offset, sizeof(tz_offset), "%+03d%02d", commit.author.tz_offset_minutes / 60, abs(commit.author.tz_offset_minutes % 60));
-  buffer_size += sprintf(buffer + buffer_size, "\nauthor %s %s %ld %s\n\n%s", 
-      commit.author.name, commit.author.email, commit.author.when, tz_offset, commit.message);
+  time_t when = time(NULL);
+  int tz_offset_minutes = get_timezone_offset_minutes(when);
+
+  buffer_size += snprintf(
+                  buffer + buffer_size, 
+                  cap - buffer_size,
+                  "author %s <%s> %ld %d", 
+                  user.name, 
+                  user.email, 
+                  when, 
+                  tz_offset_minutes
+                );
+  buffer[buffer_size++] = '\n';
+  
+  buffer_size += snprintf(
+                  buffer + buffer_size, 
+                  cap - buffer_size,
+                  "committer %s <%s> %ld %d", 
+                  user.name, 
+                  user.email, 
+                  when, 
+                  tz_offset_minutes
+                );
+  buffer[buffer_size++] = '\n';
+  buffer_size += snprintf(buffer + buffer_size, strlen(message)+1, "%s", message);
 
   uint8_t commit_hash[SHA256_DIGEST_SIZE];
   char* commit_object = malloc(cap);
   size_t header_len = snprintf(commit_object, 64, "commit %zu", buffer_size);
+  commit_object[header_len] = '\0';
   memcpy(commit_object + header_len + 1, buffer, cap - header_len - 1);
   size_t commit_object_size = buffer_size + header_len + 1;
   SHA256((const uint8_t*)commit_object, commit_object_size, commit_hash);
@@ -147,6 +175,35 @@ void make_commit_object() {
 }
 
 int commit_command(int argc, char* argv[]) {
+  staged = malloc(limbo.header.entry_count * sizeof(*staged));
+  unstaged = malloc(limbo.header.entry_count * sizeof(*unstaged));
+  committed = malloc(limbo.header.entry_count * sizeof(*committed));
+  untracked = malloc(untracked_cap * sizeof(*untracked));
+
+  size_t msg_len;
+  if(argc == 2) {
+    printf(YELLOW "\nMissed the message dumbass, imma inject my own message now, fuck u!\n\n" RESET);
+    msg_len = strlen("initial commit") + 1;
+    message = malloc(msg_len);
+    strncpy(message, "initial commit", msg_len);
+  } else if(argc == 3) {
+    msg_len = strlen(argv[2]) + 1;
+    message = malloc(msg_len);
+    strncpy(message, argv[2], msg_len);
+  } else {
+    print_error("U brough uninvited visitors. Get out!");
+    destruct();
+    exit(1);
+  }
+
+  set_stage();
+  if(staged_count == 0) {
+    printf(CYAN "\nNothing to commit\n" RESET);
+    return 0;
+  } else {
+    free_tree(&root);
+  }
+
   for(size_t i=0; i<limbo.header.entry_count; i++) {
     char temp[PATH_MAX];
     strcpy(temp, limbo.entries[i].path);
@@ -172,6 +229,7 @@ int commit_command(int argc, char* argv[]) {
   calculate_tree_hash(&root);
   make_commit_object();
   print_tree(&root, 1);
-  free_tree(&root);
+  free(message);
+  destroy_stage();
   return 0;
 }

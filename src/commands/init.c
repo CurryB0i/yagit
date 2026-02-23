@@ -8,6 +8,12 @@
 #include "utils.h"
 
 int init_command(int argc, char* argv[]) {
+  if(argc != 2) {
+    print_error("U brough uninvited visitors. Get out!");
+    destruct();
+    exit(1);
+  }
+
   struct stat st = {0};
   if(stat(".yagit",&st) == -1) {
 

@@ -8,12 +8,10 @@ int print_commit(Commit* c) {
   int idx = c->parent_count - 1;
   for(int idx=c->parent_count-1; idx>=0; idx--) {
     Commit *parent_commit = malloc(sizeof(Commit));
-    strcpy(parent_commit->author.type, "author");
-    strcpy(parent_commit->committer.type, "committer");
     build_commit(parent_commit, c->parents[idx]);
     print_commit(parent_commit);
-    printf("\n%*s\n", (SHA256_DIGEST_SIZE*2+11)/2, "|");
-    printf("%*s\n", (SHA256_DIGEST_SIZE*2+11)/2, "v");
+    printf("\n%*s\n", (SHA256_DIGEST_SIZE*2+11)/2, "^");
+    printf("%*s\n", (SHA256_DIGEST_SIZE*2+11)/2, "|");
   }
 
   printf("\n");

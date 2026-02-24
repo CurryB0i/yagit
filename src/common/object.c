@@ -83,6 +83,10 @@ void read_tree_entries(
 void build_tree(Tree* tree, const uint8_t* tree_hash) {
   memcpy(tree->hash, tree_hash, SHA256_DIGEST_SIZE);
 
+  tree->object_count = 0;
+  tree->object_capacity = 8;
+  tree->objects = malloc(tree->object_capacity * sizeof(Object*));
+
   size_t tree_obj_len;
   char* tree_obj = read_from_toilet(tree_hash, &tree_obj_len);
   if(!tree_obj) {
@@ -197,6 +201,9 @@ void get_user_data(char* commit_obj, size_t* offset, Identity* ident) {
 
 void build_commit(Commit* commit, const uint8_t* commit_hash) {
   memcpy(commit->hash, commit_hash, SHA256_DIGEST_SIZE);
+
+  strcpy(commit->author.type, "author");
+  strcpy(commit->committer.type, "committer");
 
   size_t offset = 0;
   size_t commit_obj_len;

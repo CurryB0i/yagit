@@ -172,6 +172,7 @@ void make_commit_object() {
   
   fclose(snitch_file);
   free(buffer);
+  free(commit_object);
 }
 
 int commit_command(int argc, char* argv[]) {

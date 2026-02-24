@@ -50,7 +50,6 @@ int cat_file_command(int argc, char* argv[]) {
       printf(MAGENTA "\nAuthor: %s %s %lld ", c.author.user.name, c.author.user.email, c.author.when);
       print_tz_offset(c.author.tz_offset_minutes);
 
-
       printf("\nCommitter: %s %s %lld ", c.committer.user.name, c.committer.user.email, c.committer.when);
       print_tz_offset(c.committer.tz_offset_minutes);
 

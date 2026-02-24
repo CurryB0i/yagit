@@ -6,3 +6,4 @@ int status_command(int, char**);
 int commit_command(int, char**);
 int log_command(int, char**);
 int cat_file_command(int, char**);
+int kill_command(int, char**);

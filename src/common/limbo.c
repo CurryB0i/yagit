@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
+
 #include "limbo.h"
 #include "globals.h"
 #include "utils.h"
@@ -105,7 +105,7 @@ void read_limbo() {
   char limbo_path[PATH_MAX];
   build_path(limbo_path, 3, YAGIT_SRC_DIR, YAGIT_DIR, LIMBO);
   struct stat st;
-  if(stat(limbo_path, &st) == -1) return;
+  if(STAT(limbo_path, &st) == -1) return;
 
   size_t buffer_size = st.st_size;
   FILE* limbo_file = fopen(limbo_path, "rb");

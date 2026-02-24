@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
+
 #include <limits.h>
 #include <string.h>
 
@@ -30,7 +30,7 @@ Tree* make_tree_object(Tree* parent, const char* path) {
   char full_path[PATH_MAX];
   struct stat st;
   build_path(full_path, 2, YAGIT_SRC_DIR, path);
-  stat(full_path, &st);
+  STAT(full_path, &st);
   Object *new = malloc(sizeof(Object));
   if(!new) {
     printf("adas");
@@ -180,6 +180,14 @@ int commit_command(int argc, char* argv[]) {
   committed = malloc(limbo.header.entry_count * sizeof(*committed));
   untracked = malloc(untracked_cap * sizeof(*untracked));
 
+  set_stage();
+  if(staged_count == 0) {
+    printf(CYAN "\nNothing to commit\n" RESET);
+    return 0;
+  } else {
+    free_tree(&root);
+  }
+
   size_t msg_len;
   if(argc == 2) {
     printf(YELLOW "\nMissed the message dumbass, imma inject my own message now, fuck u!\n\n" RESET);
@@ -194,14 +202,6 @@ int commit_command(int argc, char* argv[]) {
     print_error("U brough uninvited visitors. Get out!");
     destruct();
     exit(1);
-  }
-
-  set_stage();
-  if(staged_count == 0) {
-    printf(CYAN "\nNothing to commit\n" RESET);
-    return 0;
-  } else {
-    free_tree(&root);
   }
 
   for(size_t i=0; i<limbo.header.entry_count; i++) {

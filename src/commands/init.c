@@ -1,7 +1,7 @@
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/stat.h>
+
 #include "init.h"
 #include "platform.h"
 #include "globals.h"
@@ -15,7 +15,7 @@ int init_command(int argc, char* argv[]) {
   }
 
   struct stat st = {0};
-  if(stat(".yagit",&st) == -1) {
+  if(STAT(".yagit",&st) == -1) {
 
     if(GETCWD(YAGIT_SRC_DIR,sizeof(YAGIT_SRC_DIR)) == NULL) {
       perror("Can’t fetch cwd, are you lost, u stupid bitch?");
@@ -64,14 +64,14 @@ int init_command(int argc, char* argv[]) {
         fclose(fp);
       }
 
-      printf("Initialized empty yagit repository in %s\n",YAGIT_SRC_DIR);
+      printf(CYAN "\nInitialized empty yagit repository in %s\n" RESET,YAGIT_SRC_DIR);
       return 0;
     } else {
       perror("yagit out, i cant even create a fcking dir in this mf, how do u expect me to version control : ");
       return 1;
     }
   } else {
-    printf("Wtf is the matter with you, I am already doing it!\n");
+    print_error("Wtf is the matter with you, I am already doing it!");
     return 1;
   }
 }

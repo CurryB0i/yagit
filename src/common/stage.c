@@ -25,7 +25,7 @@ bool is_modified(LimboEntry *entry) {
   struct stat st;
   char file_path[PATH_MAX];
   build_path(file_path, 2, YAGIT_SRC_DIR, entry->path);
-  if(stat(file_path, &st) == -1) {
+  if(STAT(file_path, &st) == -1) {
     printf("poof magic");
     return true;
   }
@@ -87,7 +87,7 @@ bool recursively_empty(const char* dir_path) {
 
     char entry_path[PATH_MAX];
     build_path(entry_path, 2, dir_path, entry->d_name);
-    if(stat(entry_path, &st) == -1) return true;
+    if(STAT(entry_path, &st) == -1) return true;
 
     if(S_ISDIR(st.st_mode)) {
       return recursively_empty(entry_path);
@@ -129,7 +129,7 @@ void walk_dir(const char* path) {
 
     char entry_path[PATH_MAX];
     build_path(entry_path, 2, path, entry->d_name);
-    if(stat(entry_path, &st) == -1) continue;
+    if(STAT(entry_path, &st) == -1) continue;
     if(S_ISDIR(st.st_mode)) {
       if(recursively_empty(entry_path))
         continue;

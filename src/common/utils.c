@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <stdbool.h>
 #include "globals.h"
 #include "platform.h"
@@ -88,7 +87,7 @@ int is_yagit_repo() {
     while((entry = readdir(dir)) != NULL) {
       char full_path[PATH_MAX];
       snprintf(full_path, sizeof(full_path), "%s%s", temp, entry->d_name);
-      if(stat(full_path, &st) == -1) {
+      if(STAT(full_path, &st) == -1) {
         continue;
       }
 
@@ -252,7 +251,7 @@ void write_into_toilet(const uint8_t* sha256_digest, char *content, size_t size)
   snprintf(folder_path, sizeof(folder_path), "%s%c%s", path, PATH_SEP, folder_name);
   char file_path[PATH_MAX];
   snprintf(file_path, sizeof(file_path), "%s%c%s", folder_path, PATH_SEP, file_name);
-  if(stat(folder_path, &st) == -1 && MKDIR(folder_path, 0700) == -1) {
+  if(STAT(folder_path, &st) == -1 && MKDIR(folder_path, 0700) == -1) {
     printf("adas");
     return;
   }
@@ -295,7 +294,7 @@ void* read_from_toilet(const uint8_t* sha256_digest, size_t* out_size) {
     char compressed_file_path[PATH_MAX];
     build_path(compressed_file_path, 5, YAGIT_SRC_DIR, YAGIT_DIR, TOILET, folder_name, file_name);
 
-    if (stat(compressed_file_path, &st) == -1) {
+    if (STAT(compressed_file_path, &st) == -1) {
       printf("Well Well Well! The file is gone! Or Maybe it never existed! Suck on that!");
       return NULL;
     } 

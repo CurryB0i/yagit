@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
+
 #include "add.h"
 #include "utils.h"
 #include "sha256.h"
@@ -31,7 +31,7 @@ int add_file(const char* file_path) {
   LimboEntry limbo_entry;
   struct stat st;
 
-  if(stat(file_path, &st) == -1) return 1;
+  if(STAT(file_path, &st) == -1) return 1;
   limbo_entry.mtime_sec = ST_MTIM_SEC(st);
   limbo_entry.mtime_nsec = ST_MTIM_NSEC(st);
   limbo_entry.mode = normalize_mode(st.st_mode);
@@ -97,7 +97,7 @@ int add_folder(const char *folder_path) {
     
     char full_path[PATH_MAX];
     build_path(full_path, 2, folder_path, entry->d_name);
-    if(stat(full_path, &st) == -1) {
+    if(STAT(full_path, &st) == -1) {
       continue;
     }
 
@@ -126,7 +126,7 @@ int add_command(int argc, char **argv) {
     char entry_path[PATH_MAX];
     snprintf(entry_path, sizeof(entry_path), "%s%c%s", CURRENT_DIR, PATH_SEP, argv[i]);
     GET_ABS_PATH(entry_path, entry_path, sizeof(entry_path));
-    if(stat(entry_path, &st) == -1) {
+    if(STAT(entry_path, &st) == -1) {
       printf("LOAD OF CRAP!");
       return 1;
     }

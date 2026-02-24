@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
+
 #include <time.h>
 
 Tree root;
@@ -17,7 +17,7 @@ char* TYPE_MAP[3] = { "blob", "tree", "commit" };
 
 void tree_init() {
   struct stat st;
-  if(stat(YAGIT_SRC_DIR, &st) == -1) return;
+  if(STAT(YAGIT_SRC_DIR, &st) == -1) return;
   strcpy(root.name, YAGIT_SRC_DIR);
   root.mode = st.st_mode;
   root.object_count = 0;
@@ -144,7 +144,7 @@ void commit_init() {
   char snitch_path[PATH_MAX];
   struct stat st;
   build_path(snitch_path, 5, YAGIT_SRC_DIR, YAGIT_DIR, SNITCHES, HEADS, BRANCH);
-  if(stat(snitch_path, &st) == -1) {
+  if(STAT(snitch_path, &st) == -1) {
     commit.is_first = true;
     return;
   }

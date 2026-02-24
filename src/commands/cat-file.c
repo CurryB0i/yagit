@@ -39,13 +39,13 @@ int cat_file_command(int argc, char* argv[]) {
 
       printf(GREEN "\ntree ");
       print_hash(c.tree_hash);
-      printf(RESET "");
+      printf(RESET);
 
       for(int j=0; j<c.parent_count; j++) {
         printf(BLUE "\nparent ");
         print_hash(c.parents[j]);
       }
-      printf(RESET "");
+      printf(RESET);
 
       printf(MAGENTA "\nAuthor: %s %s %lld ", c.author.user.name, c.author.user.email, c.author.when);
       print_tz_offset(c.author.tz_offset_minutes);

@@ -17,7 +17,7 @@ int main(int argc,char* argv[]) {
   }
 
   if(is_yagit_repo() != 1) {
-    printf("if u not invited, dont ask to gooooo - duke dennis.");
+    print_error("If u not invited, dont ask to gooooo - duke dennis.");
     return 1;
   }
 
@@ -34,6 +34,8 @@ int main(int argc,char* argv[]) {
     status = log_command(argc, argv);
   } else if (strcmp(command, "cat-file") == 0) {
     status = cat_file_command(argc, argv);
+  } else if (strcmp(command, "kill") == 0) {
+    status = kill_command(argc, argv);
   } else {
     printf("i want u to take '%s' and get the fuck out of here now, u nutsack.",command);
   }

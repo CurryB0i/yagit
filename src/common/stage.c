@@ -21,13 +21,12 @@ char (*unstaged)[PATH_MAX];
 char (*committed)[PATH_MAX];
 char (*untracked)[PATH_MAX];
 
-bool is_modified(LimboEntry *entry) {
+int is_modified(LimboEntry *entry) {
   struct stat st;
   char file_path[PATH_MAX];
   build_path(file_path, 2, YAGIT_SRC_DIR, entry->path);
   if(STAT(file_path, &st) == -1) {
-    printf("poof magic");
-    return true;
+    return 2;
   }
 
   uint64_t calc_mtime = ((uint64_t) ST_MTIM_SEC(st) << 32) | ST_MTIM_NSEC(st);
@@ -39,7 +38,7 @@ bool is_modified(LimboEntry *entry) {
     long long file_size = (long long)st.st_size;
     if(file == NULL) {
       printf("error");
-      return false;
+      return 1;
     }
 
     uint8_t sha256_digest[SHA256_DIGEST_SIZE];
@@ -47,16 +46,16 @@ bool is_modified(LimboEntry *entry) {
     fclose(file);
     if(status != 0) {
       printf("error");
-      return true;
+      return 1;
     }
 
     if(memcmp(sha256_digest, entry->hash, SHA256_DIGEST_SIZE) == 0) {
-      return false;
+      return 0;
     } else {
-      return true;
+      return 1;
     }
   }
-  return false;
+  return 0;
 }
 
 bool visited(const char* dir_path) {
@@ -66,7 +65,7 @@ bool visited(const char* dir_path) {
   }
 
   for(size_t i=0; i<unstaged_count; i++) {
-    if(strncmp(unstaged[i], dir_path, strlen(dir_path)) == 0) 
+    if(strncmp(unstaged[i]+1, dir_path, strlen(dir_path)) == 0) 
       return true;
   } 
 
@@ -108,7 +107,7 @@ bool tracked(const char* entry) {
   }
 
   for(size_t i=0; i<unstaged_count; i++) {
-    if(strcmp(unstaged[i], entry) == 0)
+    if(strcmp(unstaged[i]+1, entry) == 0)
       return true;
   }
 
@@ -239,9 +238,11 @@ void set_stage() {
   committed = malloc(limbo.header.entry_count * sizeof(*committed));
   untracked = malloc(untracked_cap * sizeof(*untracked));
 
+  int modified;
   for(size_t i=0; i<limbo.header.entry_count; i++) {
-    if(is_modified(&limbo.entries[i])) {
-      strncpy(unstaged[unstaged_count++], limbo.entries[i].path, PATH_MAX);
+    if((modified = is_modified(&limbo.entries[i])) != 0) {
+      *unstaged[unstaged_count] = modified + '0';
+      strncpy(unstaged[unstaged_count++]+1, limbo.entries[i].path, PATH_MAX);
     } else {
       strncpy(staged[staged_count++], limbo.entries[i].path, PATH_MAX);
     }

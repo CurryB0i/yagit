@@ -1,7 +1,6 @@
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
-
 #include "init.h"
 #include "platform.h"
 #include "globals.h"
@@ -28,7 +27,7 @@ int init_command(int argc, char* argv[]) {
     if(status == 0) {
 
 #ifdef _WIN32 
-      if(!SetFileAttributes(".yagit",FILE_ATTRIBUTE_HIDDEN)) {
+      if(!SetFileAttributes(".yagit", FILE_ATTRIBUTE_HIDDEN)) {
         DWORD err = GetLastError();
         fprintf(stderr,"Nah fam, u on windows i cant hide my folder, thats yo fault : %lu\n",err);
         return 1;

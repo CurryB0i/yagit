@@ -220,18 +220,19 @@ int calculate_blob_hash(
   blob[header_len] = '\0';
   memcpy(blob + header_len + 1, buffer, buffer_len);
   free(buffer);
-
-  if(blob_out == NULL) {
-    free(blob);
-  } else {
+  
+  SHA256((const uint8_t*)blob, blob_len, sha256_digest);
+  if(blob_out != NULL) {
     *blob_out = blob;
+  } else {
+    free(blob);
   }
 
   if(blob_len_out != NULL) {
     *blob_len_out = blob_len;
   }
 
-  return SHA256((const uint8_t*)blob, blob_len, sha256_digest);
+  return 0;
 }
 
 void write_into_toilet(const uint8_t* sha256_digest, char *content, size_t size) {

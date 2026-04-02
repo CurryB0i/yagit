@@ -12,9 +12,14 @@ int status_command(int argc, char* argv[]) {
   set_stage();
 
   if(unstaged_count != 0) {
-    printf("\nUnstaged Files:\n");
+    printf("\nUnstaged Changes:\n");
     for(size_t i=0; i<unstaged_count; i++) {
-      printf(RED "    %s\n" RESET, unstaged[i]);
+      if(*unstaged[i] == '2') {
+        printf(RED "    deleted: ");
+      } else {
+        printf(RED "    modified: ");
+      }
+      printf("%s\n" RESET, unstaged[i]+1);
     }
   }
 

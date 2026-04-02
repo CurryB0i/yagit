@@ -24,8 +24,7 @@ void remove_dir(const char* path) {
     build_path(new_path, 2, path, entry->d_name);
 
     if(STAT(new_path, &st) == -1) {
-        printf("delorian");
-        continue;
+      continue;
     }
 
     if(S_ISREG(st.st_mode)) {
@@ -48,7 +47,7 @@ int kill_command(int argc, char* argv[]) {
   snprintf(path, sizeof(path), "%s%c%s", YAGIT_SRC_DIR, PATH_SEP, YAGIT_DIR);
   remove_dir(path);
   printf(BLUE "\nGoodBye");
-  for(int i=0; i<7; i++) {
+  for(int i=0; i<3; i++) {
     printf(".");
     SLEEP(500);
   }

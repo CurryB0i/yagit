@@ -6,12 +6,12 @@
 #include <stdio.h>
 #include "object.h"
 
-#define RED "\e[1;91m"
-#define GREEN "\e[1;92m"
-#define MAGENTA "\e[1;95m"
-#define BLUE "\e[1;94m"
-#define CYAN "\e[1;96m"
-#define YELLOW "\e[1;33m"
+#define RED "\e[0;91m"
+#define GREEN "\e[0;92m"
+#define MAGENTA "\e[0;95m"
+#define BLUE "\e[0;94m"
+#define CYAN "\e[0;96m"
+#define YELLOW "\e[0;33m"
 #define RESET "\e[0m"
 
 void crlf_to_lf(char*, size_t*);

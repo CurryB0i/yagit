@@ -37,7 +37,7 @@ int main(int argc,char* argv[]) {
   } else if (strcmp(command, "kill") == 0) {
     status = kill_command(argc, argv);
   } else {
-    printf("i want u to take '%s' and get the fuck out of here now, u nutsack.",command);
+    printf(RED "\nI want u to take '%s' and get the fuck out of here now, u nutsack.\n" RESET,command);
   }
 
   destruct();

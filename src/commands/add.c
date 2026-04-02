@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include "add.h"
 #include "utils.h"
 #include "sha256.h"
@@ -69,6 +68,7 @@ int add_file(const char* file_path) {
   }
 
   memcpy(limbo_entry.hash, sha256_digest, SHA256_DIGEST_SIZE);
+  printf("Adding File: %s\n", relative_path);
   int added = add_limbo_entry(&limbo_entry);
   if(added) return 0;
 
@@ -118,10 +118,11 @@ int add_command(int argc, char **argv) {
   struct stat st;
 
   if(argc == 2) {
-    printf("add who bitch, yo mama??");
+    print_error("add who bitch, yo mama??");
     return 0;
   }
 
+  printf("\n"); //Dont remove i will kill u
   for(int i=2; i<argc; i++) {
     char entry_path[PATH_MAX];
     snprintf(entry_path, sizeof(entry_path), "%s%c%s", CURRENT_DIR, PATH_SEP, argv[i]);
